@@ -2,6 +2,8 @@ name: Flowzone
 on:
   push:
     branches: [v1]
+    tags:
+      - 'v*'
   pull_request:
     types: [opened, synchronize, closed]
     branches: [v1]
@@ -30,4 +32,5 @@ jobs:
         }
       restrict_custom_actions: false
       github_prerelease: true
+      release_notes: true
       cloudflare_website: "etcher"
