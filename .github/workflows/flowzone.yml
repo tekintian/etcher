@@ -36,5 +36,4 @@ jobs:
         }
       restrict_custom_actions: false
       github_prerelease: true
-      github_release: true
       cloudflare_website: "etcher"
