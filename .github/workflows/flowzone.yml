@@ -19,19 +19,13 @@ jobs:
       custom_test_matrix: >
         {
           "os": [
-            ["ubuntu-20.04"],
-            ["windows-2019"],
-            ["macos-14"],
-            ["macos-latest-xlarge"]
+            ["windows-2019"]
           ]
         }
       custom_publish_matrix: >
         {
           "os": [
-            ["ubuntu-20.04"],
-            ["windows-2019"],
-            ["macos-14"],
-            ["macos-latest-xlarge"]
+            ["windows-2019"]
           ]
         }
       restrict_custom_actions: false
