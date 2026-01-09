@@ -16,6 +16,7 @@
 
 import ExclamationTriangleSvg from '@fortawesome/fontawesome-free/svgs/solid/triangle-exclamation.svg';
 import ChevronDownSvg from '@fortawesome/fontawesome-free/svgs/solid/chevron-down.svg';
+import ChevronRightSvg from '@fortawesome/fontawesome-free/svgs/solid/chevron-right.svg';
 import type * as sourceDestination from 'etcher-sdk/build/source-destination/';
 import * as React from 'react';
 import type { ModalProps, TableColumn } from 'rendition';
@@ -25,6 +26,7 @@ import styled from 'styled-components';
 import type {
 	DriveStatus,
 	DrivelistDrive,
+	DrivePartition,
 } from '../../../../shared/drive-constraints';
 import {
 	getDriveImageCompatibilityStatuses,
@@ -157,6 +159,9 @@ interface DriveSelectorState {
 	missingDriversModal: { drive?: DriverlessDrive };
 	selectedList: DrivelistDrive[];
 	showSystemDrives: boolean;
+	expandedDrives: Set<string>;
+	partitionMode: boolean;
+	selectedPartitions: Map<string, DrivePartition>;
 }
 
 function isSystemDrive(drive: Drive) {
@@ -184,6 +189,9 @@ export class DriveSelector extends React.Component<
 			missingDriversModal: defaultMissingDriversModalState,
 			selectedList,
 			showSystemDrives: false,
+			expandedDrives: new Set(),
+			partitionMode: false,
+			selectedPartitions: new Map(),
 		};
 
 		this.tableColumns = [
@@ -195,8 +203,24 @@ export class DriveSelector extends React.Component<
 						const isLargeDrive = isDriveSizeLarge(drive);
 						const hasWarnings =
 							this.props.showWarnings && (isLargeDrive || drive.isSystem);
+						const hasPartitions =
+							drive.partitions && drive.partitions.length > 0;
+						const isExpanded = this.state.expandedDrives.has(drive.device);
+
 						return (
 							<Flex alignItems="center">
+								{this.state.partitionMode && hasPartitions && (
+									<div
+										onClick={() => this.toggleDriveExpand(drive)}
+										style={{ cursor: 'pointer', marginRight: 8 }}
+									>
+										{isExpanded ? (
+											<ChevronDownSvg height="1em" fill="currentColor" />
+										) : (
+											<ChevronRightSvg height="1em" fill="currentColor" />
+										)}
+									</div>
+								)}
 								{hasWarnings && (
 									<ExclamationTriangleSvg
 										height="1em"
@@ -353,6 +377,127 @@ export class DriveSelector extends React.Component<
 		);
 	}
 
+	private togglePartitionMode() {
+		this.setState((prevState) => ({
+			partitionMode: !prevState.partitionMode,
+			selectedList: [],
+			selectedPartitions: new Map(),
+		}));
+	}
+
+	private toggleDriveExpand(drive: DrivelistDrive) {
+		this.setState((prevState) => {
+			const newExpanded = new Set(prevState.expandedDrives);
+			if (newExpanded.has(drive.device)) {
+				newExpanded.delete(drive.device);
+			} else {
+				newExpanded.add(drive.device);
+			}
+			return { expandedDrives: newExpanded };
+		});
+	}
+
+	private selectPartition(drive: DrivelistDrive, partition: DrivePartition) {
+		this.setState((prevState) => {
+			const newSelectedPartitions = new Map(prevState.selectedPartitions);
+			const key = `${drive.device}:${partition.path}`;
+
+			if (newSelectedPartitions.has(key)) {
+				newSelectedPartitions.delete(key);
+			} else {
+				newSelectedPartitions.set(key, partition);
+			}
+
+			// Update selectedList to include drive with selected partition
+			const newSelectedList = prevState.selectedList.filter(
+				(d) => d.device !== drive.device,
+			);
+
+			if (newSelectedPartitions.has(key)) {
+				const driveWithPartition = {
+					...drive,
+					selectedPartition: partition,
+				};
+				newSelectedList.push(driveWithPartition);
+			}
+
+			return {
+				selectedPartitions: newSelectedPartitions,
+				selectedList: newSelectedList,
+			};
+		});
+	}
+
+	private renderPartitions(drive: DrivelistDrive) {
+		if (!drive.partitions || drive.partitions.length === 0) {
+			return null;
+		}
+
+		const isSelected = (partition: DrivePartition) => {
+			const key = `${drive.device}:${partition.path}`;
+			return this.state.selectedPartitions.has(key);
+		};
+
+		return (
+			<Flex flexDirection="column" ml={24} mt={8}>
+				{drive.partitions.map((partition, index) => (
+					<Flex
+						key={partition.path}
+						alignItems="center"
+						p={8}
+						onClick={() => this.selectPartition(drive, partition)}
+						style={{
+							cursor: 'pointer',
+							backgroundColor: isSelected(partition)
+								? '#1496e120'
+								: 'transparent',
+							borderRadius: 4,
+						}}
+					>
+						<input
+							type="checkbox"
+							checked={isSelected(partition)}
+							onChange={() => {}}
+							style={{ marginRight: 8 }}
+						/>
+						<Txt fontSize={13} mr={8}>
+							Partition {partition.index + 1}
+						</Txt>
+						{partition.label && (
+							<Txt fontSize={13} mr={8} color="#8f9297">
+								({partition.label})
+							</Txt>
+						)}
+						<Txt fontSize={13} color="#5b82a7">
+							{prettyBytes(partition.size)}
+						</Txt>
+						{partition.fileSystem && (
+							<Txt fontSize={12} ml={8} color="#8f9297">
+								{partition.fileSystem}
+							</Txt>
+						)}
+					</Flex>
+				))}
+			</Flex>
+		);
+	}
+
+	private renderPartitionModeControls() {
+		return (
+			<Flex alignItems="center" mt={15} mb={15}>
+				<input
+					type="checkbox"
+					checked={this.state.partitionMode}
+					onChange={() => this.togglePartitionMode()}
+					style={{ marginRight: 8 }}
+				/>
+				<Txt fontSize="14px">
+					Partition Mode (write to specific partition)
+				</Txt>
+			</Flex>
+		);
+	}
+
 	private installMissingDrivers(drive: DriverlessDrive) {
 		if (drive.link) {
 			logEvent('Open driver link modal', {
@@ -434,6 +579,7 @@ export class DriveSelector extends React.Component<
 					</Flex>
 				) : (
 					<>
+						{this.renderPartitionModeControls()}
 						<DrivesTable
 							refFn={() => {
 								// noop
@@ -513,6 +659,17 @@ export class DriveSelector extends React.Component<
 								});
 							}}
 						/>
+						{/* Render partitions for expanded drives */}
+						{this.state.partitionMode &&
+							displayedDrives.map((drive) => {
+								if (
+									isDrivelistDrive(drive) &&
+									this.state.expandedDrives.has(drive.device)
+								) {
+									return this.renderPartitions(drive);
+								}
+								return null;
+							})}
 						{numberOfHiddenSystemDrives > 0 && (
 							<Link
 								mt={15}
@@ -537,6 +694,19 @@ export class DriveSelector extends React.Component<
 						{i18next.t('drives.systemDriveDanger')}
 					</Alert>
 				) : null}
+
+				{this.state.partitionMode &&
+					this.state.selectedList.length > 0 && (
+						<Alert
+							className="partition-mode-alert"
+							style={{ width: '67%', marginTop: 15 }}
+						>
+							<b>Partition Mode Warning:</b> Writing to a partition may not
+							make the image bootable. Ensure your image is designed for
+							partition-level writing. The partition table will not be
+							overwritten.
+						</Alert>
+					)}
 
 				{missingDriversModal.drive !== undefined && (
 					<Modal

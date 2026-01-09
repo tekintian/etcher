@@ -30,4 +30,5 @@ interface WriteOptions {
 	decompressFirst: boolean;
 	SourceType: string;
 	httpRequest?: any;
+	partitionMode?: boolean;
 }

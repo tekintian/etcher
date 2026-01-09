@@ -162,12 +162,16 @@ async function performWrite(
 		cancelEmitter = (cancelStatus: string) => emit('cancel', cancelStatus);
 
 		// Now that we know we're connected we can instruct the child process to start the write
+		// Check if any drive has a selected partition
+		const partitionMode = drives.some((d) => (d as any).selectedPartition);
+
 		const parameters = {
 			image,
 			destinations: drives,
 			SourceType: image.SourceType,
 			autoBlockmapping,
 			decompressFirst,
+			partitionMode,
 		};
 		console.log('params', parameters);
 		emit('write', parameters);

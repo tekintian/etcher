@@ -33,7 +33,12 @@ import { cleanupTmpFiles } from 'etcher-sdk/build/tmp';
 import type { SourceDestination } from 'etcher-sdk/build/source-destination';
 import { File, Http, BlockDevice } from 'etcher-sdk/build/source-destination';
 
-import type { WriteResult, FlashError, WriteOptions } from './types/types';
+import type {
+	WriteResult,
+	FlashError,
+	WriteOptions,
+} from './types/types';
+import type { DrivePartition } from '../../shared/drive-constraints';
 
 import { isJson } from '../shared/utils';
 import { toJSON } from '../shared/errors';
@@ -68,13 +73,37 @@ async function write(options: WriteOptions) {
 	};
 
 	// Write the image to the destinations
-	const destinations = options.destinations.map((d) => d.device);
 	const imagePath = options.image.path;
 	emitLog(`Image: ${imagePath}`);
-	emitLog(`Devices: ${destinations.join(', ')}`);
 	emitLog(`Auto blockmapping: ${options.autoBlockmapping}`);
 	emitLog(`Decompress first: ${options.decompressFirst}`);
+	emitLog(`Partition mode: ${options.partitionMode || false}`);
+
 	const dests = options.destinations.map((destination) => {
+		// Check if this is partition mode and a partition was selected
+		const selectedPartition = (destination as any).selectedPartition as DrivePartition;
+
+		if (options.partitionMode && selectedPartition) {
+			// Partition mode: use partition path
+			emitLog(`Writing to partition: ${selectedPartition.path}`);
+			emitLog(`Partition size: ${selectedPartition.size} bytes`);
+
+			return new BlockDevice({
+				drive: {
+					...destination,
+					device: selectedPartition.path,
+					size: selectedPartition.size,
+				},
+				unmountOnSuccess: true,
+				write: true,
+				direct: false, // Partition mode doesn't support direct I/O well
+			});
+		}
+
+		// Normal mode: write to entire disk
+		emitLog(`Writing to device: ${destination.device}`);
+		emitLog(`Device size: ${destination.size || 0} bytes`);
+
 		return new BlockDevice({
 			drive: destination,
 			unmountOnSuccess: true,
@@ -82,6 +111,12 @@ async function write(options: WriteOptions) {
 			direct: true,
 		});
 	});
+
+	const destinations = dests.map((d) => {
+		// @ts-ignore (BlockDevice.drive is private)
+		return d.drive.device;
+	});
+	emitLog(`Devices: ${destinations.join(', ')}`);
 	const { SourceType } = options;
 	try {
 		let source;

@@ -26,12 +26,25 @@ import type { SourceMetadata } from './typings/source-selector';
  */
 const UNKNOWN_SIZE = 0;
 
+/**
+ * @summary Partition information
+ */
+export interface DrivePartition {
+	index: number;
+	path: string;
+	size: number;
+	label?: string;
+	fileSystem?: string;
+	mountpoint?: string;
+}
+
 export type DrivelistDrive = Drive & {
 	disabled: boolean;
 	name: string;
 	path: string;
 	logo: string;
 	displayName: string;
+	partitions?: DrivePartition[];
 };
 
 /**

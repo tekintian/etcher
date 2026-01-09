@@ -5,6 +5,7 @@ import outdent from 'outdent';
 import type { Dictionary } from 'lodash';
 import { values, keyBy, padStart } from 'lodash';
 import { emitDrives } from './api';
+import { getPartitions } from './partition-scanner';
 
 let availableDrives: DrivelistDrive[] = [];
 
@@ -33,6 +34,20 @@ function getDrives() {
 
 async function addDrive(drive: Drive) {
 	const preparedDrive = prepareDrive(drive);
+
+	// If it's a BlockDevice, get partition information
+	if (drive instanceof sdk.sourceDestination.BlockDevice) {
+		try {
+			const partitions = await getPartitions(preparedDrive.device);
+			// @ts-ignore
+			preparedDrive.partitions = partitions;
+		} catch (error) {
+			console.error('Error getting partitions:', error);
+			// @ts-ignore
+			preparedDrive.partitions = [];
+		}
+	}
+
 	if (!(await driveIsAllowed(preparedDrive))) {
 		return;
 	}
