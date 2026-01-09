@@ -5,6 +5,7 @@ on:
   pull_request:
     types: [opened, synchronize, closed]
     branches: [v1]
+  workflow_dispatch:  # 允许手动触发
   # allow external contributions to use secrets within trusted code
   pull_request_target:
     types: [opened, synchronize, closed]
@@ -16,6 +17,7 @@ jobs:
     # prevent duplicate workflows and only allow one `pull_request` or `pull_request_target` for
     # internal or external contributions respectively
     if: |
+      github.event_name == 'push' ||
       (github.event.pull_request.head.repo.full_name == github.repository && github.event_name == 'pull_request') ||
       (github.event.pull_request.head.repo.full_name != github.repository && github.event_name == 'pull_request_target')
     secrets: inherit
