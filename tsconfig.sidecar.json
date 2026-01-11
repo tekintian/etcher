@@ -13,5 +13,6 @@
     "resolveJsonModule": true,
     "isolatedModules": true
   },
-  "include": ["lib/util", "lib/shared/*.ts", "lib/shared/sudo/windows.ts"]
+  "include": ["lib/util/**/*.ts", "lib/shared/**/*.ts", "lib/shared/sudo/windows.ts"],
+  "exclude": ["lib/shared/sudo/darwin.ts", "lib/shared/sudo/linux.ts", "lib/shared/sudo/*.js", "lib/shared/typings"]
 }
