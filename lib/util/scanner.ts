@@ -1,11 +1,11 @@
 import { scanner as driveScanner } from './drive-scanner';
 import * as sdk from 'etcher-sdk';
-import type { DrivelistDrive } from '../shared/drive-constraints';
+import type { DrivelistDrive, DrivePartition } from '../shared/drive-constraints';
 import outdent from 'outdent';
 import type { Dictionary } from 'lodash';
 import { values, keyBy, padStart } from 'lodash';
 import { emitDrives } from './api';
-import { getPartitions } from './partition-scanner';
+import { getPartitions, PartitionInfo } from './partition-scanner';
 
 let availableDrives: DrivelistDrive[] = [];
 
@@ -38,9 +38,18 @@ async function addDrive(drive: Drive) {
 	// If it's a BlockDevice, get partition information
 	if (drive instanceof sdk.sourceDestination.BlockDevice) {
 		try {
-			const partitions = await getPartitions(preparedDrive.device);
+			const partitions: PartitionInfo[] = await getPartitions(preparedDrive.device);
+			// Convert PartitionInfo to DrivePartition
+			const drivePartitions: DrivePartition[] = partitions.map(p => ({
+				index: p.index,
+				path: p.path,
+				size: p.size,
+				label: p.label,
+				fileSystem: p.fileSystem,
+				mountpoint: p.mountpoint,
+			}));
 			// @ts-ignore
-			preparedDrive.partitions = partitions;
+			preparedDrive.partitions = drivePartitions;
 		} catch (error) {
 			console.error('Error getting partitions:', error);
 			// @ts-ignore
