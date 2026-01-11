@@ -13,5 +13,5 @@
     "resolveJsonModule": true,
     "isolatedModules": true
   },
-  "include": ["lib/util"]
+  "include": ["lib/util", "lib/shared"]
 }
