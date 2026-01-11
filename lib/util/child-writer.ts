@@ -38,7 +38,6 @@ import type {
 	FlashError,
 	WriteOptions,
 } from './types/types';
-import type { DrivePartition } from '../../shared/drive-constraints';
 
 import { isJson } from '../shared/utils';
 import { toJSON } from '../shared/errors';
@@ -81,7 +80,7 @@ async function write(options: WriteOptions) {
 
 	const dests = options.destinations.map((destination) => {
 		// Check if this is partition mode and a partition was selected
-		const selectedPartition = (destination as any).selectedPartition as DrivePartition;
+		const selectedPartition = (destination as any).selectedPartition;
 
 		if (options.partitionMode && selectedPartition) {
 			// Partition mode: use partition path
