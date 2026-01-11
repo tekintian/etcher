@@ -13,6 +13,5 @@
     "resolveJsonModule": true,
     "isolatedModules": true
   },
-  "include": ["lib/util", "lib/shared"],
-  "exclude": ["lib/shared/sudo/darwin.ts", "lib/shared/sudo/linux.ts"]
+  "include": ["lib/util", "lib/shared/*.ts", "lib/shared/sudo/windows.ts"]
 }
