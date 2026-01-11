@@ -1,0 +1,43 @@
+name: Build Windows (Test)
+
+on:
+  push:
+    branches: [v1]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Windows Application
+    runs-on: windows-2019
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Electron app
+        run: npm run package
+
+      - name: Make distributables
+        run: npm run make
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-artifacts
+          path: out/make/squirrel.windows/x64/*
+          retention-days: 7
+
+      - name: Upload ZIP artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-zip
+          path: out/make/zip/x64/*
+          retention-days: 7
