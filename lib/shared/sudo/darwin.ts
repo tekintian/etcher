@@ -32,7 +32,8 @@ function getAskPassScriptPath(lang: string): string {
 		return require.resolve(`./sudo-askpass.osascript-${lang}.js`);
 	}
 	// Otherwise resolve the script relative to resources path.
-	return join(process.resourcesPath, `sudo-askpass.osascript-${lang}.js`);
+	// process.resourcesPath is an Electron-specific property
+	return join((process as any).resourcesPath, `sudo-askpass.osascript-${lang}.js`);
 }
 
 export async function sudo(
